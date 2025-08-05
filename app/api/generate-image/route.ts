@@ -130,7 +130,7 @@ export async function POST(request: NextRequest) {
     const sanitizedTheme = body.theme?.trim().replace(/[<>]/g, '') || '';
 
     // Generate prompt
-    const prompt = `A high-quality, vibrant, and clear image of a fusion between a "${sanitizedInput1}" and a "${sanitizedInput2}"${sanitizedTheme ? `, with a ${sanitizedTheme} theme` : ''}. The final image should be a creative and seamless blend of the two concepts.`;
+    const prompt = `A high-quality, vibrant, and clear image of a fusion between a "${sanitizedInput1}" and a "${sanitizedInput2}"${sanitizedTheme ? `, with a ${sanitizedTheme} theme` : ''}.`;
 
     // Call Gemini API
     const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/imagen-3.0-generate-002:predict?key=${GEMINI_API_KEY}`;
