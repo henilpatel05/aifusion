@@ -1,9 +1,10 @@
 "use client";
 
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import ShareModal from './components/ShareModal';
 import BackgroundScroller from './components/BackgroundScroller';
 import FusionExamples from './components/FusionExamples';
+import FusionCounter, { FusionCounterRef } from './components/FusionCounter';
 
 // --- Helper Functions & Interfaces ---
 
@@ -60,6 +61,9 @@ const AIFusionPage: React.FC = () => {
   // State for share modal
   const [isShareModalOpen, setIsShareModalOpen] = useState<boolean>(false);
   
+  // Ref for fusion counter to trigger increments
+  const fusionCounterRef = useRef<FusionCounterRef>(null);
+  
 
 
   // --- API Integration ---
@@ -96,6 +100,9 @@ const AIFusionPage: React.FC = () => {
         setResultImageUrl(imageUrl);
         // Add the new image to the user-generated images for background
         setUserGeneratedImages(prevImages => [imageUrl, ...prevImages.slice(0, 9)]); // Keep only last 10 user images
+        
+        // Increment fusion counter
+        fusionCounterRef.current?.incrementCount();
         
       } else {
         throw new Error("Image generation failed: No image data received.");
@@ -229,14 +236,15 @@ const AIFusionPage: React.FC = () => {
 
   // --- JSX Rendering ---
   return (
-    <main className="relative flex min-h-screen flex-col items-center justify-center p-4 overflow-hidden">
+    <>
+    <main className="relative flex min-h-screen flex-col items-center justify-center p-4 pb-12 overflow-hidden">
       {/* Background Scroller */}
       <BackgroundScroller userImages={userGeneratedImages} />
       <div className="w-full max-w-2xl mx-auto z-20 flex flex-col justify-center">
         {/* Header */}
         <div className="text-center mb-12">
           <h1 
-            className="text-6xl md:text-7xl font-black mb-6 animate-fade-in-up animate-title-breathe animate-title-glow hover:scale-105 transition-transform duration-300 cursor-default" 
+            className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-black mb-6 animate-fade-in-up animate-title-breathe animate-title-glow hover:scale-105 transition-transform duration-300 cursor-default" 
             style={{
               background: 'linear-gradient(to right, #ec4899, #8b5cf6)',
               WebkitBackgroundClip: 'text',
@@ -246,44 +254,76 @@ const AIFusionPage: React.FC = () => {
             ReeFusion
           </h1>
           <div className="space-y-2">
-            <p className="text-xl md:text-2xl text-gray-300 animate-slide-in-stagger-1 font-medium">
+            <p className="text-lg sm:text-xl md:text-2xl text-gray-300 animate-slide-in-stagger-1 font-medium">
               Combine two things and see what the AI creates! 🚀
             </p>
-            <p className="text-lg md:text-xl text-gray-400 animate-slide-in-stagger-2">
+            <p className="text-base sm:text-lg md:text-xl text-gray-400 animate-slide-in-stagger-2">
               From cat-dog hybrids to your boss riding a unicorn 😂
             </p>
           </div>
         </div>
 
-        {/* Fusion Examples */}
-        {(!resultImageUrl || isLoadingImage) && (
+        {/* Fusion Examples - Only show in input state */}
+        {!resultImageUrl && !isLoadingImage && (
           <FusionExamples onExampleClick={handleExampleClick} />
         )}
 
         {/* Main Content Container */}
         <div className="bg-gray-800/80 backdrop-blur-md p-6 sm:p-8 rounded-3xl shadow-2xl min-h-[300px] flex flex-col justify-center border border-gray-700 space-y-6 hover:bg-gray-800/90 hover:border-gray-600 transition-all duration-300 hover:shadow-purple-500/10 hover:shadow-3xl animate-fade-in-up">
-          {/* --- Input View --- */}
-          {(!resultImageUrl || isLoadingImage) && (
+          
+          {/* --- Input State --- */}
+          {!resultImageUrl && !isLoadingImage && (
             <>
               {/* Input Section */}
               <div className="flex flex-col sm:flex-row items-center space-y-4 sm:space-y-0 sm:space-x-6 mb-6">
-                <input type="text" value={input1} onChange={(e) => setInput1(e.target.value)} className="w-full sm:flex-1 bg-gray-700 border-2 border-gray-600 rounded-xl p-4 text-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200 hover:border-gray-500 hover:bg-gray-600/50 focus:scale-[1.02]" placeholder="Enter first item" disabled={isLoading} />
-                <div className="text-3xl font-bold text-purple-400 animate-pulse hover:scale-110 transition-transform duration-200">+</div>
-                <input type="text" value={input2} onChange={(e) => setInput2(e.target.value)} className="w-full sm:flex-1 bg-gray-700 border-2 border-gray-600 rounded-xl p-4 text-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200 hover:border-gray-500 hover:bg-gray-600/50 focus:scale-[1.02]" placeholder="Enter second item" disabled={isLoading} />
+                <input type="text" value={input1} onChange={(e) => setInput1(e.target.value)} className="w-full sm:flex-1 bg-gray-700 border-2 border-gray-600 rounded-xl p-3 sm:p-4 text-base sm:text-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200 hover:border-gray-500 hover:bg-gray-600/50 focus:scale-[1.02]" placeholder="Enter first item" disabled={isLoading} />
+                <div className="text-2xl sm:text-3xl font-bold text-purple-400 animate-pulse hover:scale-110 transition-transform duration-200">+</div>
+                <input type="text" value={input2} onChange={(e) => setInput2(e.target.value)} className="w-full sm:flex-1 bg-gray-700 border-2 border-gray-600 rounded-xl p-3 sm:p-4 text-base sm:text-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200 hover:border-gray-500 hover:bg-gray-600/50 focus:scale-[1.02]" placeholder="Enter second item" disabled={isLoading} />
               </div>
-              <input type="text" value={theme} onChange={(e) => setTheme(e.target.value)} className="w-full bg-gray-700 border-2 border-gray-600 rounded-xl p-4 text-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent transition-all duration-200 hover:border-gray-500 hover:bg-gray-600/50 focus:scale-[1.02] mb-6" placeholder="Optional: Add a theme (e.g., fantasy, cyberpunk)" disabled={isLoading} />
+              <input type="text" value={theme} onChange={(e) => setTheme(e.target.value)} className="w-full bg-gray-700 border-2 border-gray-600 rounded-xl p-3 sm:p-4 text-base sm:text-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent transition-all duration-200 hover:border-gray-500 hover:bg-gray-600/50 focus:scale-[1.02] mb-6" placeholder="Optional: Add a theme (e.g., fantasy, cyberpunk)" disabled={isLoading} />
               <div className="flex flex-col sm:flex-row space-y-4 sm:space-y-0 sm:space-x-4">
-                <button onClick={handleSuggestIdeas} disabled={isLoading} className="flex-1 bg-gray-600 hover:bg-gray-700 text-white font-bold py-4 px-6 rounded-xl transition-all duration-200 transform hover:scale-105 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none">{isLoadingText && !isLoadingImage ? 'Suggesting...' : '✨ Surprise Me'}</button>
-                <button onClick={handleGenerateImage} disabled={isLoading} className="flex-1 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-bold py-4 px-6 rounded-xl transition-all duration-200 transform hover:scale-105 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none">{isLoadingImage ? 'Fusing...' : '🚀 Create Fusion'}</button>
+                <button onClick={handleSuggestIdeas} disabled={isLoading} className="flex-1 bg-gray-600 hover:bg-gray-700 text-white font-bold py-3 sm:py-4 px-4 sm:px-6 text-sm sm:text-base rounded-xl transition-all duration-200 transform hover:scale-105 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none">{isLoadingText && !isLoadingImage ? 'Suggesting...' : '✨ Surprise Me'}</button>
+                <button onClick={handleGenerateImage} disabled={isLoading} className="flex-1 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-bold py-3 sm:py-4 px-4 sm:px-6 text-sm sm:text-base rounded-xl transition-all duration-200 transform hover:scale-105 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none">{isLoadingImage ? 'Fusing...' : '🚀 Create Fusion'}</button>
               </div>
-              {isLoadingImage && (
-                <div className="flex flex-col items-center justify-center pt-8 pb-4">
-                  <div className="w-16 h-16 border-4 border-t-purple-500 border-gray-300 rounded-full animate-spin mb-8"></div>
-                  <p className="text-xl text-gray-400 mb-2">Creating your fusion...</p>
-                  <p className="text-sm text-gray-500">This might take a moment</p>
-                </div>
-              )}
             </>
+          )}
+
+          {/* --- Loading State --- */}
+          {isLoadingImage && (
+            <div className="flex flex-col items-center justify-center py-12 animate-fade-in">
+              {/* Show context of what's being created */}
+              <div className="mb-8 text-center">
+                <p className="text-lg text-gray-300 mb-2">
+                  Creating fusion of
+                </p>
+                <div className="flex items-center justify-center space-x-3 mb-6">
+                  <span className="bg-purple-600/20 text-purple-300 px-4 py-2 rounded-full text-lg font-semibold">
+                    {input1}
+                  </span>
+                  <span className="text-2xl text-purple-400">+</span>
+                  <span className="bg-pink-600/20 text-pink-300 px-4 py-2 rounded-full text-lg font-semibold">
+                    {input2}
+                  </span>
+                </div>
+                {theme && (
+                  <p className="text-sm text-teal-400">
+                    with <span className="font-semibold">{theme}</span> theme
+                  </p>
+                )}
+              </div>
+              
+              {/* Large loading animation */}
+              <div className="relative mb-8">
+                <div className="w-20 h-20 border-4 border-t-purple-500 border-r-pink-500 border-b-purple-400 border-l-pink-400 rounded-full animate-spin"></div>
+                <div className="absolute inset-0 w-20 h-20 border-4 border-t-transparent border-r-transparent border-b-purple-300 border-l-purple-300 rounded-full animate-spin animate-reverse" style={{animationDuration: '3s'}}></div>
+              </div>
+              
+              {/* Progress text */}
+              <div className="text-center">
+                <p className="text-xl text-gray-300 mb-2 font-medium">Creating your fusion...</p>
+                <p className="text-sm text-gray-500">This might take a moment</p>
+              </div>
+            </div>
           )}
           {error && !isLoading && (
             <div className="bg-red-900/20 border-2 border-red-500/50 text-red-200 p-6 rounded-2xl text-center mx-4">
@@ -315,6 +355,10 @@ const AIFusionPage: React.FC = () => {
         lore={lore || undefined}
       />
     </main>
+    
+    {/* Sticky Fusion Counter Footer */}
+    <FusionCounter ref={fusionCounterRef} />
+    </>
   );
 };
 

@@ -73,6 +73,7 @@ const FusionExamples: React.FC<FusionExamplesProps> = ({ onExampleClick }) => {
         ✨ Get inspired by these fusion ideas ✨
       </p>
       <div className="flex flex-wrap justify-center gap-2 max-w-4xl mx-auto">
+        {/* Show first 3 examples on mobile, all 6 on larger screens */}
         {examples.map((example, index) => (
           <div
             key={index}
@@ -88,6 +89,7 @@ const FusionExamples: React.FC<FusionExamplesProps> = ({ onExampleClick }) => {
               glass-card-mini
               flex items-center space-x-2
               relative overflow-hidden
+              ${index >= 3 ? 'hidden sm:flex' : 'flex'}
             `}
             style={{
               backdropFilter: 'blur(8px)',
