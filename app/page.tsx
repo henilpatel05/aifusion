@@ -4,21 +4,44 @@ import React, { useState, useEffect } from 'react';
 
 // --- Helper Functions & Interfaces ---
 
-// Define the structure for a suggestion
-interface Suggestion {
-    item1: string;
-    item2: string;
+interface ApiErrorResponse {
+  error: string;
 }
+
+interface GenerateImageResponse {
+  success: boolean;
+  imageData?: string;
+  error?: string;
+}
+
+interface SuggestIdeasResponse {
+  success: boolean;
+  item1?: string;
+  item2?: string;
+  error?: string;
+}
+
+interface GenerateDescriptionResponse {
+  success: boolean;
+  description?: string;
+  error?: string;
+}
+
+interface GenerateLoreResponse {
+  success: boolean;
+  lore?: string;
+  error?: string;
+}
+
 
 // Function to create a simple SVG placeholder image
 const createPlaceholderSvg = (text: string) => {
     const bgColor = '#374151'; // gray-700
-    const textColor = '#d1d5db'; // gray-300
     const accentColor = '#8b5cf6'; // purple-500
     const encodedBg = encodeURIComponent(bgColor);
     const encodedText = encodeURIComponent(text);
     const encodedAccent = encodeURIComponent(accentColor);
-    return `data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='400' viewBox='0 0 400 400'%3E%3Crect width='400' height='400' fill='${encodedBg}'/%3E%3Ctext x='200' y='190' text-anchor='middle' fill='${encodedText}' font-size='24' font-family='Arial, sans-serif' font-weight='bold'%3EFusion of%3C/text%3E%3Ctext x='200' y='230' text-anchor='middle' fill='${encodedAccent}' font-size='28' font-family='Arial, sans-serif' font-weight='bold'%3E${encodedText}%3C/text%3E%3C/svg%3E`;
+    return `data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='400' viewBox='0 0 400 400'%3E%3Crect width='400' height='400' fill='${encodedBg}'/%3E%3Ctext x='200' y='190' text-anchor='middle' fill='%23d1d5db' font-size='24' font-family='Arial, sans-serif' font-weight='bold'%3EFusion of%3C/text%3E%3Ctext x='200' y='230' text-anchor='middle' fill='${encodedAccent}' font-size='28' font-family='Arial, sans-serif' font-weight='bold'%3E${encodedText}%3C/text%3E%3C/svg%3E`;
 };
 
 
@@ -67,7 +90,6 @@ const AIFusionPage: React.FC = () => {
     const [isLoadingText, setIsLoadingText] = useState<boolean>(false);
     const [error, setError] = useState<string | null>(null);
     const [resultImageUrl, setResultImageUrl] = useState<string | null>(null);
-    const [generatedPrompt, setGeneratedPrompt] = useState<string | null>(null);
     const [description, setDescription] = useState<string | null>(null);
     const [lore, setLore] = useState<string | null>(null);
     const [copySuccess, setCopySuccess] = useState<string>('');
@@ -89,43 +111,9 @@ const AIFusionPage: React.FC = () => {
         ]);
     }, []);
 
-    // --- Gemini API Integration ---
-
-    // Access the API key from environment variables safely on the client
-    const apiKey = (typeof process !== 'undefined' ? process.env.NEXT_PUBLIC_GEMINI_API_KEY : "") || "";
-
-    const fetchWithExponentialBackoff = async (url: string, payload: object, maxRetries: number = 5): Promise<any> => {
-        let attempt = 0;
-        let delay = 1000;
-        while (attempt < maxRetries) {
-            try {
-                const response = await fetch(url, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(payload),
-                });
-                if (response.ok) return await response.json();
-                if (response.status === 429 || response.status >= 500) {
-                    console.warn(`API call failed with status ${response.status}. Retrying in ${delay / 1000}s...`);
-                } else {
-                    const errorData = await response.json();
-                    throw new Error(errorData?.error?.message || `HTTP error! status: ${response.status}`);
-                }
-            } catch (error) {
-                if (attempt >= maxRetries - 1) throw error;
-            }
-            await new Promise(resolve => setTimeout(resolve, delay));
-            delay *= 2;
-            attempt++;
-        }
-        throw new Error('API request failed after multiple retries.');
-    };
+    // --- API Integration ---
 
     const handleGenerateImage = async () => {
-        if (!apiKey) {
-            setError("API Key is not configured. Please set it up in your environment variables.");
-            return;
-        }
         if (!input1.trim() || !input2.trim()) {
             setError("Please fill out both fields to create a fusion!");
             return;
@@ -134,21 +122,25 @@ const AIFusionPage: React.FC = () => {
         setIsLoadingImage(true);
         setError(null);
         setResultImageUrl(null);
-        setGeneratedPrompt(null);
         setDescription(null);
         setLore(null);
         setCopySuccess('');
 
-        const prompt = `A high-quality, vibrant, and clear image of a fusion between a "${input1}" and a "${input2}"${theme ? `, with a ${theme} theme` : ''}. The final image should be a creative and seamless blend of the two concepts.`;
-        setGeneratedPrompt(prompt);
-
         try {
-            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/imagen-3.0-generate-002:predict?key=${apiKey}`;
-            const payload = { instances: [{ prompt }], parameters: { "sampleCount": 1 } };
-            const result = await fetchWithExponentialBackoff(apiUrl, payload);
+            const response = await fetch('/api/generate-image', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ input1, input2, theme }),
+            });
 
-            if (result.predictions && result.predictions.length > 0 && result.predictions[0].bytesBase64Encoded) {
-                const imageUrl = `data:image/png;base64,${result.predictions[0].bytesBase64Encoded}`;
+            const result = await response.json() as GenerateImageResponse | ApiErrorResponse;
+
+            if (!response.ok) {
+                throw new Error('error' in result ? result.error : 'Failed to generate image');
+            }
+
+            if ('success' in result && result.success && result.imageData) {
+                const imageUrl = `data:image/png;base64,${result.imageData}`;
                 setResultImageUrl(imageUrl);
                 // Add the new image to the beginning of the background wall
                 setFusedImages(prevImages => [imageUrl, ...prevImages]);
@@ -164,28 +156,24 @@ const AIFusionPage: React.FC = () => {
     };
 
     const handleSuggestIdeas = async () => {
-        if (!apiKey) {
-            setError("API Key is not configured.");
-            return;
-        }
         setIsLoadingText(true);
         setError(null);
         try {
-            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${apiKey}`;
-            const prompt = "Generate two creative and contrasting items that could be fused together. Provide the response as a JSON object with keys 'item1' and 'item2'.";
-            const payload = {
-                contents: [{ role: "user", parts: [{ text: prompt }] }],
-                generationConfig: {
-                    responseMimeType: "application/json",
-                    responseSchema: { type: "OBJECT", properties: { "item1": { "type": "STRING" }, "item2": { "type": "STRING" } }, required: ["item1", "item2"] }
-                }
-            };
-            const result = await fetchWithExponentialBackoff(apiUrl, payload);
-            const text = result?.candidates?.[0]?.content?.parts?.[0]?.text;
-            if (text) {
-                const suggestion: Suggestion = JSON.parse(text);
-                setInput1(suggestion.item1);
-                setInput2(suggestion.item2);
+            const response = await fetch('/api/suggest-ideas', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({}),
+            });
+
+            const result = await response.json() as SuggestIdeasResponse | ApiErrorResponse;
+
+            if (!response.ok) {
+                throw new Error('error' in result ? result.error : 'Failed to get suggestions');
+            }
+
+            if ('success' in result && result.success && result.item1 && result.item2) {
+                setInput1(result.item1);
+                setInput2(result.item2);
             } else {
                 throw new Error("Could not parse suggestion from API response.");
             }
@@ -198,23 +186,26 @@ const AIFusionPage: React.FC = () => {
     };
 
     const handleDescribeCreation = async () => {
-        if (!apiKey) {
-            setError("API Key is not configured.");
-            return;
-        }
         if (!input1 || !input2) return;
         setIsLoadingText(true);
         setError(null);
         setDescription(null);
         setCopySuccess('');
         try {
-            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${apiKey}`;
-            const prompt = `Write a short, creative, and engaging description for a fantastical object that is a fusion of a "${input1}" and a "${input2}".`;
-            const payload = { contents: [{ role: "user", parts: [{ text: prompt }] }] };
-            const result = await fetchWithExponentialBackoff(apiUrl, payload);
-            const text = result?.candidates?.[0]?.content?.parts?.[0]?.text;
-            if (text) {
-                setDescription(text.trim());
+            const response = await fetch('/api/generate-description', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ input1, input2 }),
+            });
+
+            const result = await response.json() as GenerateDescriptionResponse | ApiErrorResponse;
+
+            if (!response.ok) {
+                throw new Error('error' in result ? result.error : 'Failed to generate description');
+            }
+
+            if ('success' in result && result.success && result.description) {
+                setDescription(result.description);
             } else {
                 throw new Error("Could not generate a description.");
             }
@@ -227,22 +218,25 @@ const AIFusionPage: React.FC = () => {
     };
 
     const handleGenerateLore = async () => {
-        if (!apiKey) {
-            setError("API Key is not configured.");
-            return;
-        }
         if (!description) return;
         setIsLoadingText(true);
         setError(null);
         setLore(null);
         try {
-            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${apiKey}`;
-            const prompt = `Based on this description: "${description}", write a short, mythical-sounding lore or backstory for this creation. Make it sound like a legend.`;
-            const payload = { contents: [{ role: "user", parts: [{ text: prompt }] }] };
-            const result = await fetchWithExponentialBackoff(apiUrl, payload);
-            const text = result?.candidates?.[0]?.content?.parts?.[0]?.text;
-            if (text) {
-                setLore(text.trim());
+            const response = await fetch('/api/generate-lore', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ description }),
+            });
+
+            const result = await response.json() as GenerateLoreResponse | ApiErrorResponse;
+
+            if (!response.ok) {
+                throw new Error('error' in result ? result.error : 'Failed to generate lore');
+            }
+
+            if ('success' in result && result.success && result.lore) {
+                setLore(result.lore);
             } else {
                 throw new Error("Could not generate lore.");
             }
@@ -255,21 +249,28 @@ const AIFusionPage: React.FC = () => {
     };
 
     const handleCopy = (textToCopy: string, type: 'Description' | 'Shareable') => {
-        const textArea = document.createElement("textarea");
-        textArea.value = textToCopy;
-        textArea.style.position = "fixed";
-        textArea.style.top = "0";
-        textArea.style.left = "0";
-        document.body.appendChild(textArea);
-        textArea.focus();
-        textArea.select();
-        try {
-            document.execCommand('copy');
-            setCopySuccess(`${type} copied to clipboard!`);
-        } catch (err) {
-            setCopySuccess(`Failed to copy ${type}.`);
+        if (navigator.clipboard) {
+            navigator.clipboard.writeText(textToCopy)
+                .then(() => setCopySuccess(`${type} copied to clipboard!`))
+                .catch(() => setCopySuccess(`Failed to copy ${type}.`));
+        } else {
+            // Fallback for older browsers
+            const textArea = document.createElement("textarea");
+            textArea.value = textToCopy;
+            textArea.style.position = "fixed";
+            textArea.style.top = "0";
+            textArea.style.left = "0";
+            document.body.appendChild(textArea);
+            textArea.focus();
+            textArea.select();
+            try {
+                document.execCommand('copy');
+                setCopySuccess(`${type} copied to clipboard!`);
+            } catch {
+                setCopySuccess(`Failed to copy ${type}.`);
+            }
+            document.body.removeChild(textArea);
         }
-        document.body.removeChild(textArea);
         setTimeout(() => setCopySuccess(''), 2000);
     };
 
@@ -281,8 +282,8 @@ const AIFusionPage: React.FC = () => {
         if (navigator.share) {
             try {
                 await navigator.share({ title: 'My AI Fusion Creation', text: shareText });
-            } catch (error: any) {
-                if (error.name !== 'AbortError') handleCopy(shareText, 'Shareable');
+            } catch (error: unknown) {
+                if (error instanceof Error && error.name !== 'AbortError') handleCopy(shareText, 'Shareable');
             }
         } else {
             handleCopy(shareText, 'Shareable');
@@ -296,7 +297,6 @@ const AIFusionPage: React.FC = () => {
         setInput2('');
         setTheme('');
         setResultImageUrl(null);
-        setGeneratedPrompt(null);
         setDescription(null);
         setLore(null);
         setError(null);
@@ -356,13 +356,14 @@ const AIFusionPage: React.FC = () => {
                         <div className="space-y-6 animate-fade-in">
                             <div className="relative"><img src={resultImageUrl} alt={`AI Generated Fusion of ${input1} and ${input2}`} className="rounded-2xl w-full h-auto mx-auto shadow-xl bg-gray-700" /><div className="absolute top-4 right-4 bg-black/50 backdrop-blur-sm px-3 py-1 rounded-full"><span className="text-sm text-white font-medium">{input1} + {input2}</span></div></div>
                             <div className="flex space-x-3">{!description ? (<button onClick={handleDescribeCreation} disabled={isLoading} className="flex-1 bg-teal-600 hover:bg-teal-700 text-white font-bold py-3 px-4 rounded-xl transition-all duration-200 transform hover:scale-105 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none">{isLoadingText ? 'Writing...' : '📝 Describe'}</button>) : !lore ? (<button onClick={handleGenerateLore} disabled={isLoading} className="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-4 rounded-xl transition-all duration-200 transform hover:scale-105 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none">{isLoadingText ? 'Creating...' : '📚 Add Lore'}</button>) : null}<button onClick={handleShare} className="flex-1 bg-pink-600 hover:bg-pink-700 text-white font-bold py-3 px-4 rounded-xl transition-all duration-200 transform hover:scale-105 shadow-lg">🚀 Share</button></div>
-                            {description && (<div className="bg-gray-700/50 p-6 rounded-2xl space-y-4"><div><h4 className="text-lg font-semibold text-purple-300 mb-2">Description</h4><p className="text-gray-300 italic">"{description}"</p></div>{lore && (<div className="border-t border-gray-600 pt-4"><h4 className="text-lg font-semibold text-pink-300 mb-2">Lore</h4><p className="text-gray-300 italic">"{lore}"</p></div>)}</div>)}
+                            {description && (<div className="bg-gray-700/50 p-6 rounded-2xl space-y-4"><div><h4 className="text-lg font-semibold text-purple-300 mb-2">Description</h4><p className="text-gray-300 italic">&quot;{description}&quot;</p></div>{lore && (<div className="border-t border-gray-600 pt-4"><h4 className="text-lg font-semibold text-pink-300 mb-2">Lore</h4><p className="text-gray-300 italic">&quot;{lore}&quot;</p></div>)}</div>)}
                             <div className="pt-4 border-t border-gray-600"><button onClick={resetToInputs} className="w-full bg-gradient-to-r from-gray-600 to-gray-700 hover:from-gray-700 hover:to-gray-800 text-white font-bold py-4 px-6 rounded-xl transition-all duration-200 transform hover:scale-105 shadow-lg">✨ Create Another Fusion</button></div>
                             {copySuccess && (<div className="text-center"><p className="text-green-400 font-medium">{copySuccess}</p></div>)}
                         </div>
                     )}
                 </div>
-            </div>
+            </div>init
+        
         </main>
     );
 };
