@@ -20,6 +20,34 @@ body {
 
 
 @layer utilities {
+  /* Infinite scrolling animations for background */
+  @keyframes scroll-up-slow {
+    from { transform: translateY(0); }
+    to { transform: translateY(-50%); }
+  }
+  @keyframes scroll-down-medium {
+    from { transform: translateY(-50%); }
+    to { transform: translateY(0); }
+  }
+  @keyframes scroll-up-fast {
+    from { transform: translateY(0); }
+    to { transform: translateY(-50%); }
+  }
+  
+  .animate-scroll-up-slow {
+    animation: scroll-up-slow 120s linear infinite;
+  }
+  .animate-scroll-down-medium {
+    animation: scroll-down-medium 80s linear infinite;
+  }
+  .animate-scroll-up-fast {
+    animation: scroll-up-fast 60s linear infinite;
+  }
+  .animate-scroll-down-slow {
+    animation: scroll-down-medium 100s linear infinite;
+  }
+  
+  /* Legacy animations for backward compatibility */
   @keyframes scroll-up {
     from { transform: translateY(0); }
     to { transform: translateY(-50%); }
@@ -34,12 +62,197 @@ body {
   .animate-scroll-down {
     animation: scroll-down 60s linear infinite;
   }
+  
   .animate-fade-in {
      animation: fade-in 0.5s ease-in-out;
   }
   @keyframes fade-in {
      from { opacity: 0; transform: translateY(10px); }
      to { opacity: 1; transform: translateY(0); }
+  }
+  
+  /* Custom sizes for background images */
+  .w-15 { width: 3.75rem; }
+  .h-15 { height: 3.75rem; }
+  .w-18 { width: 4.5rem; }
+  .h-18 { height: 4.5rem; }
+  .w-19 { width: 4.75rem; }
+  .h-19 { height: 4.75rem; }
+  .w-22 { width: 5.5rem; }
+  .h-22 { height: 5.5rem; }
+  .w-26 { width: 6.5rem; }
+  .h-26 { height: 6.5rem; }
+  .opacity-6 { opacity: 0.06; }
+  .opacity-8 { opacity: 0.08; }
+  .opacity-12 { opacity: 0.12; }
+  .opacity-15 { opacity: 0.15; }
+  
+  /* Glassmorphism and unique effects for fusion examples */
+  .glass-card {
+    position: relative;
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+  }
+  
+  .glass-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    border-radius: inherit;
+    padding: 2px;
+    background: linear-gradient(45deg, transparent, rgba(255,255,255,0.1), transparent);
+    mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    mask-composite: exclude;
+    -webkit-mask-composite: xor;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+  }
+  
+  .glass-card:hover::before {
+    opacity: 1;
+  }
+  
+  /* Subtle texture pattern */
+  .glass-card::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    border-radius: inherit;
+    background-image: 
+      radial-gradient(circle at 1px 1px, rgba(255,255,255,0.15) 1px, transparent 0);
+    background-size: 20px 20px;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    pointer-events: none;
+  }
+  
+  .glass-card:hover::after {
+    opacity: 0.3;
+  }
+  
+  /* Ripple effect */
+  @keyframes ripple {
+    0% {
+      transform: scale(0);
+      opacity: 1;
+    }
+    100% {
+      transform: scale(4);
+      opacity: 0;
+    }
+  }
+  
+  .glass-card:active::before {
+    animation: ripple 0.6s linear;
+  }
+  
+  /* Mini glass cards for compact examples */
+  .glass-card-mini {
+    position: relative;
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+  }
+  
+  .glass-card-mini:hover {
+    box-shadow: 0 0 20px rgba(139, 92, 246, 0.3);
+  }
+  
+  /* Enhanced title animations */
+  @keyframes titleBreathe {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.02); }
+  }
+  
+  @keyframes titleGlow {
+    0%, 100% { filter: drop-shadow(0 0 20px rgba(139, 92, 246, 0.3)); }
+    50% { filter: drop-shadow(0 0 30px rgba(139, 92, 246, 0.5)); }
+  }
+  
+  @keyframes fadeInUp {
+    0% { 
+      opacity: 0; 
+      transform: translateY(30px);
+    }
+    100% { 
+      opacity: 1; 
+      transform: translateY(0);
+    }
+  }
+  
+  @keyframes slideInStagger {
+    0% { 
+      opacity: 0; 
+      transform: translateX(-20px);
+    }
+    100% { 
+      opacity: 1; 
+      transform: translateX(0);
+    }
+  }
+  
+  .animate-title-breathe {
+    animation: titleBreathe 4s ease-in-out infinite;
+  }
+  
+  .animate-title-glow {
+    animation: titleGlow 3s ease-in-out infinite;
+  }
+  
+  .animate-fade-in-up {
+    animation: fadeInUp 1s ease-out forwards;
+  }
+  
+  .animate-slide-in-stagger-1 {
+    animation: slideInStagger 0.8s ease-out 0.2s forwards;
+    opacity: 0;
+  }
+  
+  .animate-slide-in-stagger-2 {
+    animation: slideInStagger 0.8s ease-out 0.4s forwards;  
+    opacity: 0;
+  }
+  
+  /* Floating shapes animations */
+  @keyframes float1 {
+    0%, 100% { transform: translate(0, 0) rotate(0deg); }
+    33% { transform: translate(30px, -30px) rotate(120deg); }
+    66% { transform: translate(-20px, 20px) rotate(240deg); }
+  }
+  
+  @keyframes float2 {
+    0%, 100% { transform: translate(0, 0) rotate(0deg); }
+    50% { transform: translate(-40px, 30px) rotate(180deg); }
+  }
+  
+  @keyframes float3 {
+    0%, 100% { transform: translate(0, 0) rotate(45deg); }
+    25% { transform: translate(20px, -40px) rotate(135deg); }
+    75% { transform: translate(-30px, -20px) rotate(315deg); }
+  }
+  
+  @keyframes float4 {
+    0%, 100% { transform: translate(0, 0) scale(1); }
+    50% { transform: translate(25px, -25px) scale(1.1); }
+  }
+  
+  @keyframes float5 {
+    0%, 100% { transform: translate(0, 0) rotate(45deg) scale(1); }
+    33% { transform: translate(-25px, 35px) rotate(165deg) scale(0.8); }
+    66% { transform: translate(35px, -15px) rotate(285deg) scale(1.2); }
+  }
+  
+  @keyframes float6 {
+    0%, 100% { transform: translate(0, 0) rotate(0deg); }
+    25% { transform: translate(15px, -25px) rotate(90deg); }
+    50% { transform: translate(-20px, -10px) rotate(180deg); }
+    75% { transform: translate(10px, 20px) rotate(270deg); }
   }
 }
 

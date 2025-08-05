@@ -1,7 +1,9 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import ShareModal from './components/ShareModal';
+import BackgroundScroller from './components/BackgroundScroller';
+import FusionExamples from './components/FusionExamples';
 
 // --- Helper Functions & Interfaces ---
 
@@ -35,15 +37,6 @@ interface GenerateLoreResponse {
 }
 
 
-// Function to create a simple SVG placeholder image
-const createPlaceholderSvg = (text: string) => {
-  const bgColor = '#374151'; // gray-700
-  const accentColor = '#8b5cf6'; // purple-500
-  const encodedBg = encodeURIComponent(bgColor);
-  const encodedText = encodeURIComponent(text);
-  const encodedAccent = encodeURIComponent(accentColor);
-  return `data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='400' viewBox='0 0 400 400'%3E%3Crect width='400' height='400' fill='${encodedBg}'/%3E%3Ctext x='200' y='190' text-anchor='middle' fill='%23d1d5db' font-size='24' font-family='Arial, sans-serif' font-weight='bold'%3EFusion of%3C/text%3E%3Ctext x='200' y='230' text-anchor='middle' fill='${encodedAccent}' font-size='28' font-family='Arial, sans-serif' font-weight='bold'%3E${encodedText}%3C/text%3E%3C/svg%3E`;
-};
 
 
 // --- Main Page Component ---
@@ -61,26 +54,13 @@ const AIFusionPage: React.FC = () => {
   const [lore, setLore] = useState<string | null>(null);
   const [copySuccess, setCopySuccess] = useState<string>('');
 
-  // State for the background image wall
-  const [fusedImages, setFusedImages] = useState<string[]>([]);
+  // State for user-generated images to be added to background
+  const [userGeneratedImages, setUserGeneratedImages] = useState<string[]>([]);
   
   // State for share modal
   const [isShareModalOpen, setIsShareModalOpen] = useState<boolean>(false);
   
 
-  // Populate the background with some initial images on component mount
-  useEffect(() => {
-    setFusedImages([
-      createPlaceholderSvg("Galaxy & Hourglass"),
-      createPlaceholderSvg("Robot & Forest"),
-      createPlaceholderSvg("Whale & Skyscraper"),
-      createPlaceholderSvg("Book & Volcano"),
-      createPlaceholderSvg("Piano & Waterfall"),
-      createPlaceholderSvg("Compass & Feather"),
-      createPlaceholderSvg("Lighthouse & Guitar"),
-      createPlaceholderSvg("Spaceship & Sunflower"),
-    ]);
-  }, []);
 
   // --- API Integration ---
 
@@ -114,8 +94,8 @@ const AIFusionPage: React.FC = () => {
       if ('success' in result && result.success && result.imageData) {
         const imageUrl = `data:image/png;base64,${result.imageData}`;
         setResultImageUrl(imageUrl);
-        // Add the new image to the beginning of the background wall
-        setFusedImages(prevImages => [imageUrl, ...prevImages]);
+        // Add the new image to the user-generated images for background
+        setUserGeneratedImages(prevImages => [imageUrl, ...prevImages.slice(0, 9)]); // Keep only last 10 user images
         
       } else {
         throw new Error("Image generation failed: No image data received.");
@@ -241,50 +221,57 @@ const AIFusionPage: React.FC = () => {
     setCopySuccess('');
   };
 
+  const handleExampleClick = (item1: string, item2: string) => {
+    setInput1(item1);
+    setInput2(item2);
+    setError(null);
+  };
+
   // --- JSX Rendering ---
   return (
     <main className="relative flex min-h-screen flex-col items-center justify-center p-4 overflow-hidden">
-      {/* Background Image Wall */}
-      <div className="fixed inset-0 overflow-hidden opacity-10 pointer-events-none">
-        <div className="absolute inset-0 flex flex-wrap justify-center items-center space-x-4 space-y-4 p-8 animate-pulse">
-          {fusedImages.map((image, index) => (
-            <img
-              key={index}
-              src={image}
-              alt={`Background fusion ${index + 1}`}
-              className="w-32 h-32 object-cover rounded-lg shadow-lg transform rotate-12 hover:rotate-0 transition-transform duration-500"
-            />
-          ))}
-        </div>
-      </div>
+      {/* Background Scroller */}
+      <BackgroundScroller userImages={userGeneratedImages} />
       <div className="w-full max-w-2xl mx-auto z-20 flex flex-col justify-center">
         {/* Header */}
         <div className="text-center mb-12">
-          <h1 className="text-6xl md:text-7xl font-black mb-4" style={{
-            background: 'linear-gradient(to right, #ec4899, #8b5cf6)',
-            WebkitBackgroundClip: 'text',
-            WebkitTextFillColor: 'transparent'
-          }}>
+          <h1 
+            className="text-6xl md:text-7xl font-black mb-6 animate-fade-in-up animate-title-breathe animate-title-glow hover:scale-105 transition-transform duration-300 cursor-default" 
+            style={{
+              background: 'linear-gradient(to right, #ec4899, #8b5cf6)',
+              WebkitBackgroundClip: 'text',
+              WebkitTextFillColor: 'transparent'
+            }}
+          >
             ReeFusion
           </h1>
-          <p className="text-xl text-gray-300">Combine two things and see what the AI creates! 🚀</p>
-          <p className="text-xl text-gray-300">From cat-dog hybrids to your boss riding a unicorn 😂</p>
-
+          <div className="space-y-2">
+            <p className="text-xl md:text-2xl text-gray-300 animate-slide-in-stagger-1 font-medium">
+              Combine two things and see what the AI creates! 🚀
+            </p>
+            <p className="text-lg md:text-xl text-gray-400 animate-slide-in-stagger-2">
+              From cat-dog hybrids to your boss riding a unicorn 😂
+            </p>
+          </div>
         </div>
 
+        {/* Fusion Examples */}
+        {(!resultImageUrl || isLoadingImage) && (
+          <FusionExamples onExampleClick={handleExampleClick} />
+        )}
 
         {/* Main Content Container */}
-        <div className="bg-gray-800/80 backdrop-blur-md p-6 sm:p-8 rounded-3xl shadow-2xl min-h-[300px] flex flex-col justify-center border border-gray-700 space-y-6">
+        <div className="bg-gray-800/80 backdrop-blur-md p-6 sm:p-8 rounded-3xl shadow-2xl min-h-[300px] flex flex-col justify-center border border-gray-700 space-y-6 hover:bg-gray-800/90 hover:border-gray-600 transition-all duration-300 hover:shadow-purple-500/10 hover:shadow-3xl animate-fade-in-up">
           {/* --- Input View --- */}
           {(!resultImageUrl || isLoadingImage) && (
             <>
               {/* Input Section */}
               <div className="flex flex-col sm:flex-row items-center space-y-4 sm:space-y-0 sm:space-x-6 mb-6">
-                <input type="text" value={input1} onChange={(e) => setInput1(e.target.value)} className="w-full sm:flex-1 bg-gray-700 border-2 border-gray-600 rounded-xl p-4 text-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition" placeholder="Enter first item" disabled={isLoading} />
-                <div className="text-3xl font-bold text-purple-400">+</div>
-                <input type="text" value={input2} onChange={(e) => setInput2(e.target.value)} className="w-full sm:flex-1 bg-gray-700 border-2 border-gray-600 rounded-xl p-4 text-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition" placeholder="Enter second item" disabled={isLoading} />
+                <input type="text" value={input1} onChange={(e) => setInput1(e.target.value)} className="w-full sm:flex-1 bg-gray-700 border-2 border-gray-600 rounded-xl p-4 text-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200 hover:border-gray-500 hover:bg-gray-600/50 focus:scale-[1.02]" placeholder="Enter first item" disabled={isLoading} />
+                <div className="text-3xl font-bold text-purple-400 animate-pulse hover:scale-110 transition-transform duration-200">+</div>
+                <input type="text" value={input2} onChange={(e) => setInput2(e.target.value)} className="w-full sm:flex-1 bg-gray-700 border-2 border-gray-600 rounded-xl p-4 text-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200 hover:border-gray-500 hover:bg-gray-600/50 focus:scale-[1.02]" placeholder="Enter second item" disabled={isLoading} />
               </div>
-              <input type="text" value={theme} onChange={(e) => setTheme(e.target.value)} className="w-full bg-gray-700 border-2 border-gray-600 rounded-xl p-4 text-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent transition mb-6" placeholder="Optional: Add a theme (e.g., fantasy, cyberpunk)" disabled={isLoading} />
+              <input type="text" value={theme} onChange={(e) => setTheme(e.target.value)} className="w-full bg-gray-700 border-2 border-gray-600 rounded-xl p-4 text-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent transition-all duration-200 hover:border-gray-500 hover:bg-gray-600/50 focus:scale-[1.02] mb-6" placeholder="Optional: Add a theme (e.g., fantasy, cyberpunk)" disabled={isLoading} />
               <div className="flex flex-col sm:flex-row space-y-4 sm:space-y-0 sm:space-x-4">
                 <button onClick={handleSuggestIdeas} disabled={isLoading} className="flex-1 bg-gray-600 hover:bg-gray-700 text-white font-bold py-4 px-6 rounded-xl transition-all duration-200 transform hover:scale-105 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none">{isLoadingText && !isLoadingImage ? 'Suggesting...' : '✨ Surprise Me'}</button>
                 <button onClick={handleGenerateImage} disabled={isLoading} className="flex-1 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-bold py-4 px-6 rounded-xl transition-all duration-200 transform hover:scale-105 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none">{isLoadingImage ? 'Fusing...' : '🚀 Create Fusion'}</button>
